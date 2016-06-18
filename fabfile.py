@@ -1,30 +1,32 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import os
 from fabric.api import *
 from fabric.colors import red
 from fabric.contrib.files import upload_template
 from settings import USER, PASS
 from settings import HOSTS, DOMAIN, SUBDOMAIN
 
-REPO = 'https://github.com/mitrofun/loftschool-javascript.git'
-PROJECT_NAME = 'loftschool-javascript'
+REPO = 'https://github.com/mitrofun/accordion.git'
+PROJECT_NAME = 'accordion'
+PROJECTS_DIR = 'projects'
+PROJECT_DIR = '{projects_dir}/{project}'.format(projects_dir=PROJECTS_DIR, project=PROJECT_NAME)
 env.hosts = HOSTS
 
 
-@task
 def clone_project():
-    try:
-        run('git clone {repo}'.format(repo=REPO))
-    except:
-        print(red('dir {} already have, del dir and clone again'.format(PROJECT_NAME)))
-        run('rm -rf {project}'.format(project=PROJECT_NAME))
-        run('git clone {repo}'.format(repo=REPO))
+    with cd(PROJECTS_DIR):
+        try:
+            run('git clone {repo}'.format(repo=REPO))
+        except:
+            print(red('dir {} already have, del dir and clone again'.format(PROJECT_NAME)))
+            run('rm -rf {project}'.format(project=PROJECT_NAME))
+            run('git clone {repo}'.format(repo=REPO))
 
 
-@task
 def create_config(build):
     if build:
-        env.root = env.root + 'build/'
+        env.root += 'build/'
     context = {
         'domain': env.domain,
         'root': env.root
@@ -33,7 +35,6 @@ def create_config(build):
     upload_template('config/nginx.template', env.nginx, context, use_jinja=True, )
 
 
-@task
 def link_conf():
     nginx_link = '/etc/nginx/sites-enabled/{}.conf'.format(env.domain)
     sudo('ln -s {} {}'.format(env.nginx, nginx_link))
@@ -48,44 +49,6 @@ def reload():
     sudo('nginx -s reload')
 
 
-@task
-def install_bower():
-    sudo('apt-get install nodejs -y')
-    sudo('apt-get install npm -y')
-    sudo('npm install -g bower')
-    sudo('ln -s /usr/bin/nodejs /usr/bin/node')
-
-
-def bower_install():
-    try:
-        run('bower i')
-    except:
-        with cd(env.root):
-            run('bower install')
-
-
-@task
-def deploy(user=USER, pas=PASS, subdomain=SUBDOMAIN):
-    """
-    Развертываение на сервер с уже установленными системными библиотеками, СУБД
-    :param user: Пользователь
-    :param pas: Пароль пользователя
-    :param subdomain Поддомен для приложения
-    :return: Развернутое приложения на сервере
-    """
-    env.user = user
-    env.password = pas
-    env.work = subdomain
-    env.domain = '{}.{}'.format(subdomain, DOMAIN)
-    env.project_dir = '/home/{user}/{project}'.format(user=user, project=PROJECT_NAME)
-    env.root = '{project_dir}/works/{work}/'.format(project_dir=env.project_dir, work=env.work)
-    clone_project()
-    create_config()
-    link_conf()
-    reload()
-
-
-@task
 def config(user=USER, pas=PASS, subdomain=SUBDOMAIN):
     """
     Конфигурирование проекта, уже склонированного
@@ -115,28 +78,28 @@ def update(user=USER, pas=PASS):
     """
     env.user = user
     env.password = pas
-    with cd(PROJECT_NAME):
+    with cd(PROJECT_DIR):
         run('git pull origin master')
     reload()
 
 
-def initial_setting(user, pas, subdomain):
+def initial_setting(user, pas):
     env.user = user
     env.password = pas
-    env.work = subdomain
-    env.domain = '{}.{}'.format(subdomain, DOMAIN)
-    env.project_dir = '/home/{user}/{project}'.format(user=user, project=PROJECT_NAME)
-    env.root = '{project_dir}/works/{work}/'.format(project_dir=env.project_dir, work=env.work)
+    env.work = SUBDOMAIN
+    env.domain = '{}.{}'.format(SUBDOMAIN, DOMAIN)
+    env.root = '/home/{user}/projects/{project}'.format(user=user, project=PROJECT_NAME)
 
 
-@task(alias='test')
-def config_test_work(user=USER, pas=PASS, subdomain='test', build=True):
-    initial_setting(user, pas, subdomain)
-    if build:
-        with cd(env.root):
-            run('npm i')
-            run('gulp clean')
-            run('gulp build')
-    create_config(build)
+@task(alias='deploy')
+def config_deploy(user=USER, pas=PASS):
+    env.build = True
+    initial_setting(user, pas)
+    with cd(env.root):
+        clone_project()
+        run('npm i')
+        run('gulp clean')
+        run('gulp build')
+    create_config(env.build)
     link_conf()
     reload()
