@@ -1,0 +1,5 @@
+/.env/
+/external
+/settings.py
+/node_modules/
+

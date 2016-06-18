@@ -1,0 +1,4 @@
+livereload==2.4.0
+Fabric3==1.10.2.post3
+Jinja2==2.8
+pycrypto==2.6.1
