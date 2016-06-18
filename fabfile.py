@@ -31,7 +31,7 @@ def create_config(build):
         'domain': env.domain,
         'root': env.root
     }
-    env.nginx = '{}/config/{}-nginx.conf'.format(env.project_dir, env.work)
+    env.nginx = '{}/config/nginx.conf'.format(env.project_dir)
     upload_template('config/nginx.template', env.nginx, context, use_jinja=True, )
 
 
@@ -47,25 +47,6 @@ def reload():
     :return:
     """
     sudo('nginx -s reload')
-
-
-def config(user=USER, pas=PASS, subdomain=SUBDOMAIN):
-    """
-    Конфигурирование проекта, уже склонированного
-    :param user: Пользователь
-    :param pas: Пароль
-    :param subdomain: Поддомен для приложения
-    :return:
-    """
-    env.user = user
-    env.password = pas
-    env.work = subdomain
-    env.domain = '{}.{}'.format(subdomain, DOMAIN)
-    env.project_dir = '/home/{user}/{project}'.format(user=user, project=PROJECT_NAME)
-    env.root = '{project_dir}/works/{work}/'.format(project_dir=env.project_dir, work=env.work)
-    create_config()
-    link_conf()
-    reload()
 
 
 @task
@@ -88,16 +69,18 @@ def initial_setting(user, pas):
     env.password = pas
     env.work = SUBDOMAIN
     env.domain = '{}.{}'.format(SUBDOMAIN, DOMAIN)
-    env.root = '/home/{user}/projects/{project}'.format(user=user, project=PROJECT_NAME)
+    env.project_dir = '/home/{user}/projects/{project}'.format(user=user, project=PROJECT_NAME)
+    env.root = '/home/{user}/projects/{project}/'.format(user=user, project=PROJECT_NAME)
 
 
 @task(alias='deploy')
 def config_deploy(user=USER, pas=PASS):
     env.build = True
     initial_setting(user, pas)
+    clone_project()
     with cd(env.root):
-        clone_project()
         run('npm i')
+        run('bundle install')
         run('gulp clean')
         run('gulp build')
     create_config(env.build)
