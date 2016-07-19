@@ -1,10 +1,10 @@
 window.onload = function () {
      console.log('start');
 
-     var accordionItems = document.getElementsByClassName('accordion__item-title'),
+     var accordion = document.querySelector('.accordion'),
 
          changeState = function (e) {
-             console.log(e.target);
+             // console.log(e.target);
              var accordionItem = e.target.parentNode,
                  accordionList = accordionItem.children[0].nextElementSibling,
                  accordionListHeight = 0,
@@ -27,16 +27,13 @@ window.onload = function () {
          },
 
          setActive = function (e) {
-             console.log(e.currentTarget);
-             var accordionItem = e.currentTarget.parentNode;
+             console.log(e.target);
+             var accordionItem = e.target.parentNode;
              accordionItem.classList.toggle('accordion__item_active');
          };
 
+    accordion.addEventListener('click', changeState);
+    accordion.addEventListener('click', setActive);
 
-     for (var i=0; i < accordionItems.length; i++) {
-         accordionItems[i].addEventListener('click', changeState, 'false');
-         accordionItems[i].addEventListener('click', setActive, 'false');
-
-     }
  };
 
