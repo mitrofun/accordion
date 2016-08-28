@@ -49,7 +49,6 @@ $ gulp build
 ```
 $ git https://github.com/mitrofun/accordion
 $ cd accordion && bin/local_run.sh
-$ 
 ```
 
 
